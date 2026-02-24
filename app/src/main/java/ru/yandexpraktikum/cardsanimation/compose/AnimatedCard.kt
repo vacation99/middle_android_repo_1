@@ -19,8 +19,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import ru.yandexpraktikum.cardsanimation.model.CardData
+import ru.yandexpraktikum.cardsanimation.model.CardSwapAnimationStep
 import kotlin.math.cos
 import kotlin.math.sin
+
+private const val SHORT_ANIMATION_DURATION = 300
+private const val LONG_ANIMATION_DURATION = 800
 
 @Composable
 fun AnimatedCard(
@@ -29,41 +33,58 @@ fun AnimatedCard(
     targetRotation: Float,
     finalRotation: Float,
     isAnimating: Boolean,
-    animationStep: Int,
-    onAnimationStepComplete: ((Int) -> Unit)? = null,
+    animationStep: CardSwapAnimationStep,
+    onAnimationStepComplete: ((CardSwapAnimationStep) -> Unit)? = null,
 ) {
 
     val density = LocalDensity.current
 
     val animatedRotation by animateFloatAsState(
         targetValue = when {
-            animationStep == 3 -> finalRotation
+            animationStep == CardSwapAnimationStep.THIRD_STEP -> finalRotation
             isAnimating -> targetRotation
             else -> targetRotation
         },
-        animationSpec = tween(durationMillis = if (animationStep == 3) 300 else 800),
+        animationSpec = tween(
+            durationMillis = if (animationStep == CardSwapAnimationStep.THIRD_STEP) {
+                SHORT_ANIMATION_DURATION
+            } else {
+                LONG_ANIMATION_DURATION
+            }
+        ),
         finishedListener = {
-            if (animationStep == 3 && isAnimating) onAnimationStepComplete?.invoke(3)
+            if (animationStep == CardSwapAnimationStep.THIRD_STEP && isAnimating) {
+                onAnimationStepComplete?.invoke(CardSwapAnimationStep.THIRD_STEP)
+            }
         },
         label = "rotation"
     )
 
     val animatedTranslationX by animateFloatAsState(
         targetValue = when {
-            isAnimating && animationStep == 1 -> {
+            isAnimating && animationStep == CardSwapAnimationStep.FIRST_STEP -> {
                 val moveDistance = with(density) { 50.dp.toPx() }
                 val rotationRad = Math.toRadians(targetRotation.toDouble())
                 moveDistance * cos(rotationRad).toFloat()
             }
-            isAnimating && animationStep == 2 -> 0f
+
+            isAnimating && animationStep == CardSwapAnimationStep.SECOND_STEP -> 0f
+
             else -> 0f
         },
-        animationSpec = tween(durationMillis = 300),
+        animationSpec = tween(durationMillis = SHORT_ANIMATION_DURATION),
         finishedListener = {
             if (isAnimating) {
                 when (animationStep) {
-                    1 -> onAnimationStepComplete?.invoke(1)
-                    2 -> onAnimationStepComplete?.invoke(2)
+                    CardSwapAnimationStep.FIRST_STEP -> {
+                        onAnimationStepComplete?.invoke(CardSwapAnimationStep.FIRST_STEP)
+                    }
+
+                    CardSwapAnimationStep.SECOND_STEP -> {
+                        onAnimationStepComplete?.invoke(CardSwapAnimationStep.SECOND_STEP)
+                    }
+
+                    else -> Unit
                 }
             }
         },
@@ -72,19 +93,22 @@ fun AnimatedCard(
 
     val animatedTranslationY by animateFloatAsState(
         targetValue = when {
-            isAnimating && animationStep == 1 -> {
+            isAnimating && animationStep == CardSwapAnimationStep.FIRST_STEP -> {
                 val moveDistance = with(density) { 50.dp.toPx() }
                 val rotationRad = Math.toRadians(targetRotation.toDouble())
                 moveDistance * sin(rotationRad).toFloat()
             }
-            isAnimating && animationStep == 2 -> 0f
+
+            isAnimating && animationStep == CardSwapAnimationStep.SECOND_STEP -> 0f
+
             else -> 0f
         },
-        animationSpec = tween(durationMillis = 300),
+        animationSpec = tween(durationMillis = SHORT_ANIMATION_DURATION),
         label = "translationY"
     )
 
-    val shouldBringToFront = isAnimating && animationStep >= 2
+    val shouldBringToFront = isAnimating && animationStep == CardSwapAnimationStep.SECOND_STEP ||
+            isAnimating && animationStep == CardSwapAnimationStep.THIRD_STEP
 
     Card(
         modifier = Modifier

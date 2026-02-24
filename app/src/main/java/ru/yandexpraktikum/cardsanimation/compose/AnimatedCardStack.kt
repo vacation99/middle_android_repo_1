@@ -14,6 +14,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import ru.yandexpraktikum.cardsanimation.model.CardData
 import ru.yandexpraktikum.cardsanimation.model.CardSwapAnimationState
+import ru.yandexpraktikum.cardsanimation.model.CardSwapAnimationStep
 import kotlin.math.abs
 
 /**
@@ -60,7 +61,7 @@ fun AnimatedCardStack(cards: List<CardData>) {
                                 if (isRotated) return@detectDragGestures
                                 animationState = CardSwapAnimationState(
                                     isAnimating = true,
-                                    animationStep = 1
+                                    animationStep = CardSwapAnimationStep.FIRST_STEP
                                 )
                             }
                         }
@@ -94,12 +95,12 @@ fun AnimatedCardStack(cards: List<CardData>) {
                     isAnimating = if (i == 0) animationState.isAnimating else false,
                     animationStep = animationState.animationStep,
                     onAnimationStepComplete = if (i == 0) {
-                        {
+                        { currentStep ->
                             handleAnimationStepComplete(
-                                step = it,
+                                step = currentStep,
                                 cardIndex = i,
-                                onStepChange = { step ->
-                                    animationState = animationState.copy(animationStep = step)
+                                onStepChange = { newStep ->
+                                    animationState = animationState.copy(animationStep = newStep)
                                 },
                                 onAnimationComplete = {
                                     animationState = CardSwapAnimationState()
@@ -122,16 +123,17 @@ private fun reorderCards(cards: List<CardData>): List<CardData> {
 }
 
 private fun handleAnimationStepComplete(
-    step: Int,
+    step: CardSwapAnimationStep,
     cardIndex: Int,
-    onStepChange: (Int) -> Unit,
+    onStepChange: (CardSwapAnimationStep) -> Unit,
     onAnimationComplete: () -> Unit
 ) {
     if (cardIndex == 0) {
         when (step) {
-            1 -> onStepChange(2)
-            2 -> onStepChange(3)
-            3 -> onAnimationComplete()
+            CardSwapAnimationStep.FIRST_STEP -> onStepChange(CardSwapAnimationStep.SECOND_STEP)
+            CardSwapAnimationStep.SECOND_STEP -> onStepChange(CardSwapAnimationStep.THIRD_STEP)
+            CardSwapAnimationStep.THIRD_STEP -> onAnimationComplete()
+            CardSwapAnimationStep.EMPTY -> Unit
         }
     }
 }
